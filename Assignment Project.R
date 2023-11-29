@@ -24,3 +24,10 @@ View(review_data_small)
 View(tip_data)
 View(user_data_small)
 
+#Set seed for reproducibility
+set.seed(1) 
+
+#Split data into training and test
+test_obs <- sample(1:nrow(review_data_small), 10000)
+review_test <- review_data_small[test_obs, ]
+review_train <- review_data_small[-test_obs, ]
