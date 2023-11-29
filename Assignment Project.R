@@ -16,3 +16,11 @@ tip_data  <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Mat
 #Load smaller user and review data
 load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_review_small.Rda")
 load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_user_small.Rda")
+
+#View data
+View(business_data)
+View(checkin_data)
+View(review_data_small)
+View(tip_data)
+View(user_data_small)
+
