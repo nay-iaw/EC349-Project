@@ -31,3 +31,9 @@ set.seed(1)
 test_obs <- sample(1:nrow(review_data_small), 10000)
 review_test <- review_data_small[test_obs, ]
 review_train <- review_data_small[-test_obs, ]
+
+#Subsetting data
+reviewx_train <-review_train[,-1]
+reviewy_train <-review_train[,1]
+reviewx_test <-review_test[,-1]
+reviewy_test <-review_test[,1]
