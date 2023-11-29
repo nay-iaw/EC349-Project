@@ -9,10 +9,10 @@ setwd("/Users/waiyan_1020/Desktop/EC349 Project")
 library(jsonlite)
 
 #Load Different Data
-business_data <- stream_in(file("yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
-checkin_data  <- stream_in(file("yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
-tip_data  <- stream_in(file("yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
+business_data <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
+checkin_data  <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
+tip_data  <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 
 #Load smaller user and review data
-load("/Users/waiyan_1020/Desktop/EC349 Project/yelp_review_small.Rda")
-load("/Users/waiyan_1020/Desktop/EC349 Project/yelp_user_small.Rda")
+load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_review_small.Rda")
+load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_user_small.Rda")
