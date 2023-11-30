@@ -61,3 +61,36 @@ multinom_prediction2 <- predict(review_multinom_model2, newdata = review_test2)
 summary (multinom_prediction2)
 review_test2$stars <- factor(review_test2$stars)
 summary (review_test2$stars)
+
+#Clear previous data
+rm (merge_review_user, review_multinom_model, review_multinom_model2, review_test, review_test2, review_train, review_train2, reviewx_test, reviewx_train, reviewy_test, reviewy_train, test_obs, test_obs2, multinom_prediction, multinom_prediction2)
+
+# Plot association between stars and useful, cool, funny, word count in text- review
+install.packages("ggplot2")
+library(ggplot2)
+ggplot(review_data_small, aes(x=stars, y=useful)) + geom_bar(position='dodge', stat='summary', fun='mean')
+ggplot(review_data_small, aes(x=stars, y=cool)) + geom_bar(position='dodge', stat='summary', fun='mean')
+ggplot(review_data_small, aes(x=stars, y=funny)) + geom_bar(position='dodge', stat='summary', fun='mean')
+library(dplyr)
+library(stringr)
+review_data_small <- review_data_small %>% + mutate(word_count = str_count(text, "\\S+"))
+ggplot(review_data_small, aes(x=stars, y=word_count)) + geom_bar(position='dodge', stat='summary', fun='mean')
+
+#Transforming user data
+user_data_small$sum_compliments <- rowSums(user_data_small[, 12:22])
+
+#Plot association between review count, sum of compliments and average stars
+ggplot(user_data_small, aes(x=review_count, y=average_stars)) + geom_point() + geom_smooth(method="lm")
+
+#merge review and user data by user id
+library(tidyverse)
+user_data_small2 <- user_data_small %>%
+  select(user_id, review_count, average_stars, sum_compliments)
+user_review_merged <- left_join(review_data_small, user_data_small2, by = "user_id")
+
+#Merge business checkin and tip data by business_id
+library(stringr)
+library(dplyr)
+checkin_data <- checkin_data %>%
+  mutate(checkin_count = sapply(checkin_data$date[-1], function(cell) str_count(cell, ",") + 1))
+
