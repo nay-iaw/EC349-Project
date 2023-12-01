@@ -17,16 +17,6 @@ tip_data  <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Mat
 load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_review_small.Rda")
 load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_user_small.Rda")
 
-#View data
-View(business_data)
-View(checkin_data)
-View(review_data_small)
-View(tip_data)
-View(user_data_small)
-
-#Set seed for reproducibility
-set.seed(1) 
-
 # Plot association between stars and useful, cool, funny, word count in text- review
 install.packages("ggplot2")
 library(ggplot2)
@@ -51,7 +41,6 @@ user_data_small2 <- user_data_small %>%
   select(user_id, review_count, average_stars, sum_compliments)
 user_review_merged <- left_join(review_data_small, user_data_small2, by = "user_id")
 
-
 #Transform checkin_data
 library(stringr)
 library(dplyr)
@@ -69,6 +58,7 @@ business_checkin_merged2 <- business_checkin_merged %>%
 user_business_merged <- left_join(user_review_merged, business_checkin_merged2, by = "business_id")
 user_business_merged2 = subset(user_business_merged, select = -c(1,2,3,8,9))
 
+
 #Change variables from int to numeric; stars to factor
 str(user_business_merged2)
 user_business_merged2$useful <- as.numeric(user_business_merged2$useful)
@@ -79,66 +69,67 @@ user_business_merged2$review_count.x <- as.numeric(user_business_merged2$review_
 user_business_merged2$review_count.y <- as.numeric(user_business_merged2$review_count.y)
 user_business_merged2$stars.x <- as.factor(user_business_merged2$stars.x)
 
+#Handle missing values- replace NA with means/median
+user_business_merged2$review_count.x <- ifelse(is.na(user_business_merged2$review_count.x), median(user_business_merged2$review_count.x, na.rm = TRUE), user_business_merged2$review_count.x)
+user_business_merged2$average_stars<- ifelse(is.na(user_business_merged2$average_stars), mean(user_business_merged2$average_stars, na.rm = TRUE), user_business_merged2$average_stars)
+user_business_merged2$sum_compliments <- ifelse(is.na(user_business_merged2$sum_compliments), median(user_business_merged2$sum_compliments, na.rm = TRUE), user_business_merged2$sum_compliments)
+user_business_merged2$checkin_count <- ifelse(is.na(user_business_merged2$checkin_count), median(user_business_merged2$checkin_count, na.rm = TRUE), user_business_merged2$checkin_count)
+sum(is.na(user_business_merged2))
+
+#Set seed for reproducibility
+set.seed(1) 
+
 #Split the data into test and training
 test_obs <- sample(1:nrow(user_business_merged2), 10000)
 review_test <- user_business_merged2[test_obs, ]
 review_train <- user_business_merged2[-test_obs, ]
+reviewx_train <- review_train[,-1]
+reviewy_train <- review_train[,1]
+reviewx_test <- review_test[,-1]
+reviewy_test <- review_test [,1]
+reviewy_train <- as.numeric(reviewy_train)
 
+#Subset
+userx_business_merged2 <- user_business_merged2 [,-1]
+usery_business_merged2 <- user_business_merged2 [,1]
 
-#Handle missing values- replace NA with means/median
-review_train$review_count.x <- ifelse(is.na(review_train$review_count.x), median(review_train$review_count.x, na.rm = TRUE), review_train$review_count.x)
-review_train$average_stars<- ifelse(is.na(review_train$average_stars), mean(review_train$average_stars, na.rm = TRUE), review_train$average_stars)
-review_train$sum_compliments <- ifelse(is.na(review_train$sum_compliments), median(review_train$sum_compliments, na.rm = TRUE), review_train$sum_compliments)
-review_train$checkin_count <- ifelse(is.na(review_train$checkin_count), median(review_train$checkin_count, na.rm = TRUE), review_train$checkin_count)
-sum(is.na(review_train))
+#Multinomial logistic regression
+library(nnet)
+review_multinom_model <- multinom(stars.x ~ useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count, data = review_train)
+summary (review_multinom_model)
+multinom_prediction <- predict(review_multinom_model, newdata = review_test)
+summary (multinom_prediction)
+review_test$stars.x <- factor(review_test$stars.x)
+summary (review_test$stars.x)
 
-#Random Forest
-install.packages("randomForest")
-library(randomForest)
-model_RF <- randomForest(stars.x ~ ., data = review_train)
+#Ridge with validation
+install.packages("glmnet")
+library(glmnet) 
+grid <- 10^seq(10, -2, length = 100)
+ridge.mod <- glmnet(as.matrix(userx_business_merged2), as.matrix(usery_business_merged2), alpha = 0, lambda = grid, thresh = 1e-12)
+cv.out <- cv.glmnet(as.matrix(reviewx_train), as.matrix(reviewy_train), alpha = 0, nfolds = 5)
+plot(cv.out)
+lambda_ridge_cv <- cv.out$lambda.min
+#Re-Estimate Ridge with lambda chosen by Cross validation
+ridge.mod<-glmnet(reviewx_train, reviewy_train, alpha = 0, lambda = lambda_ridge_cv, thresh = 1e-12)
+#Fit on Test Data
+ridge.pred <- predict(ridge.mod, s = lambda_ridge_cv, newx = as.matrix(reviewx_test))
+str(reviewy_test)
+reviewy_test <- as.numeric(reviewy_test)
+ridge_MSE<- mean((ridge.pred - reviewy_test) ^ 2) 
+print(ridge_MSE)#1.481496
 
-#File is too large TT- run in parallel then combine
-library(foreach)
-library(doParallel)
-# Set the number of cores to use
-cores_to_use <- 14
-# Register parallel backend
-cl <- makeCluster(cores_to_use)
-registerDoParallel(cl)
-# Formula
-formula <- as.formula("stars.x ~ useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count")
-# Use foreach to grow the random forest in parallel
-rf_model <- foreach(ntree = rep(100000, cores_to_use), .combine = combine, .packages = "randomForest") %dopar% {
-  randomForest(formula, data = review_train, ntree = 1000)
-}
-# Install and load the 'h2o' package
-install.packages("h2o")
-library(h2o)
-# Initialize and start an H2O cluster
-h2o.init
-# Convert data to H2OFrame
-h2o_data <- as.h2o(review_train)
-h2o_data2 <- as.h2o(review_test)
-#Define variables
-response_variable <- "stars.x"
-predictor_variables <- c("useful", "funny", "cool", "word_count", "review_count.x", "average_stars", "sum_compliments", "stars.y", "review_count.y", "checkin_count")
-# Train a distributed random forest model
-model_RF <- h2o.randomForest(x = predictor_variables, y = response_variable, training_frame = h2o_data, validation_frame = h2o_data2, ntrees = 500)
+#LASSO with validation
+cv.out <- cv.glmnet(as.matrix(reviewx_train), as.matrix(reviewy_train), alpha = 1, nfolds = 5)
+plot(cv.out)
+lambda_LASSO_cv <- cv.out$lambda.min #cross-validation is the lambda minimising empirical MSE in training data
+#Re-Estimate Ridge with lambda chosen by Cross validation
+LASSO.mod<-glmnet(reviewx_train, reviewy_train, alpha = 1, lambda = lambda_LASSO_cv, thresh = 1e-12)
+coef(LASSO.mod) #note that some parameter estimates are set to 0 --> Model selection!
+#check_in count set to 0
 
-#STILL TOO LARGE- subset of training data??
-model_RF <- randomForest(stars.x ~ ., data = review_train_subset)
-subset_train_obs <- sample(1:1388056, 100000)
-review_train_subset <- review_train[subset_train_obs, ]
-
-#Random Forest (subset)
-model_RF <- randomForest(stars.x ~ ., data = review_train_subset)
-pred_RF_test = predict(model_RF, review_test)
-mean(model_RF[["err.rate"]])
---0.6294205
-
-#Bagging
-library(ipred) 
-library(tree)
-library(rpart)
-library(rpart.plot)
-bag <- bagging(stars.x~., data=review_train, nbagg = 1000, coob = TRUE, control = rpart.control(minsplit = 2, cp = 0.1))
+#Fit on Test Data
+LASSO.pred <- predict(LASSO.mod, s = lambda_LASSO_cv, newx = as.matrix(reviewx_test))
+str(reviewy_test)
+LASSO_MSE<- mean((LASSO.pred - reviewy_test) ^ 2) 
+print(LASSO_MSE)#1.477707
