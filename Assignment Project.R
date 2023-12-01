@@ -27,9 +27,6 @@ View(user_data_small)
 #Set seed for reproducibility
 set.seed(1) 
 
-#Clear previous data
-rm (merge_review_user, review_multinom_model, review_multinom_model2, review_test, review_test2, review_train, review_train2, reviewx_test, reviewx_train, reviewy_test, reviewy_train, test_obs, test_obs2, multinom_prediction, multinom_prediction2)
-
 # Plot association between stars and useful, cool, funny, word count in text- review
 install.packages("ggplot2")
 library(ggplot2)
@@ -38,7 +35,8 @@ ggplot(review_data_small, aes(x=stars, y=cool)) + geom_bar(position='dodge', sta
 ggplot(review_data_small, aes(x=stars, y=funny)) + geom_bar(position='dodge', stat='summary', fun='mean')
 library(dplyr)
 library(stringr)
-review_data_small <- review_data_small %>% + mutate(word_count = str_count(text, "\\S+"))
+review_data_small <- review_data_small %>% 
+  mutate(word_count = str_count(text, "\\S+"))
 ggplot(review_data_small, aes(x=stars, y=word_count)) + geom_bar(position='dodge', stat='summary', fun='mean')
 
 #Transforming user data
@@ -58,7 +56,7 @@ user_review_merged <- left_join(review_data_small, user_data_small2, by = "user_
 library(stringr)
 library(dplyr)
 checkin_data <- checkin_data %>%
-  mutate(checkin_count = sapply(checkin_data$date[-1], function(cell) str_count(cell, ",") + 1))
+  mutate(checkin_count = sapply(checkin_data$date, function(cell) str_count(cell, ",") + 1))
 
 #Merge business and checkin data by business_id
 checkin_data2 <- checkin_data %>%
@@ -99,3 +97,18 @@ sum(is.na(review_train))
 install.packages("randomForest")
 library(randomForest)
 model_RF <- randomForest(stars.x ~ ., data = review_train)
+
+#File is too large TT- run in parallel then combine
+# Set the number of cores to use
+cores_to_use <- 7
+# Register parallel backend
+cl <- makeCluster(cores_to_use)
+registerDoParallel(cl)
+# Formula
+formula <- stars.x = useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count
+# Use foreach to grow the random forest in parallel
+rf_model <- foreach(ntree = rep(200000, cores_to_use), .combine = combine, .packages = "randomForest") %dopar% {
+  randomForest(formula, data = review_train, ntree = 1000)
+}
+
+#STILL TOO LARGE SAVE MY LAPTOP
