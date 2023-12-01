@@ -133,3 +133,16 @@ LASSO.pred <- predict(LASSO.mod, s = lambda_LASSO_cv, newx = as.matrix(reviewx_t
 str(reviewy_test)
 LASSO_MSE<- mean((LASSO.pred - reviewy_test) ^ 2) 
 print(LASSO_MSE)#1.477707
+
+#Decision Tree
+install.packages("tree")
+install.packages("rpart")
+install.packages("rpart.plot")
+library(tree)
+library(rpart)
+library(rpart.plot)
+table(review_train$stars.x)
+table(review_test$stars.x)
+reviewtree <- tree(stars.x ~., data = review_train, method = "class")
+rpart.plot(reviewtree)
+
