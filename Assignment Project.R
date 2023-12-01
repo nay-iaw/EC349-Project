@@ -111,4 +111,20 @@ rf_model <- foreach(ntree = rep(200000, cores_to_use), .combine = combine, .pack
   randomForest(formula, data = review_train, ntree = 1000)
 }
 
-#STILL TOO LARGE SAVE MY LAPTOP
+#STILL TOO LARGE- subset of training data??
+model_RF <- randomForest(stars.x ~ ., data = review_train_subset)
+subset_train_obs <- sample(1:1388056, 100000)
+review_train_subset <- review_train[subset_train_obs, ]
+
+#Random Forest (subset)
+model_RF <- randomForest(stars.x ~ ., data = review_train_subset)
+pred_RF_test = predict(model_RF, review_test)
+mean(model_RF[["err.rate"]])
+--0.6294205
+
+#Bagging
+library(ipred) 
+library(tree)
+library(rpart)
+library(rpart.plot)
+bag <- bagging(stars.x~., data=review_train, nbagg = 1000, coob = TRUE, control = rpart.control(minsplit = 2, cp = 0.1))
