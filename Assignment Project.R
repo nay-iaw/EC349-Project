@@ -80,7 +80,6 @@ user_business_merged2$review_count.y <- as.numeric(user_business_merged2$review_
 user_business_merged2$stars.x <- as.factor(user_business_merged2$stars.x)
 
 #Split the data into test and training
-set.seed(1)
 test_obs <- sample(1:nrow(user_business_merged2), 10000)
 review_test <- user_business_merged2[test_obs, ]
 review_train <- user_business_merged2[-test_obs, ]
@@ -99,17 +98,32 @@ library(randomForest)
 model_RF <- randomForest(stars.x ~ ., data = review_train)
 
 #File is too large TT- run in parallel then combine
+library(foreach)
+library(doParallel)
 # Set the number of cores to use
-cores_to_use <- 7
+cores_to_use <- 14
 # Register parallel backend
 cl <- makeCluster(cores_to_use)
 registerDoParallel(cl)
 # Formula
-formula <- stars.x = useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count
+formula <- as.formula("stars.x ~ useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count")
 # Use foreach to grow the random forest in parallel
-rf_model <- foreach(ntree = rep(200000, cores_to_use), .combine = combine, .packages = "randomForest") %dopar% {
+rf_model <- foreach(ntree = rep(100000, cores_to_use), .combine = combine, .packages = "randomForest") %dopar% {
   randomForest(formula, data = review_train, ntree = 1000)
 }
+# Install and load the 'h2o' package
+install.packages("h2o")
+library(h2o)
+# Initialize and start an H2O cluster
+h2o.init
+# Convert data to H2OFrame
+h2o_data <- as.h2o(review_train)
+h2o_data2 <- as.h2o(review_test)
+#Define variables
+response_variable <- "stars.x"
+predictor_variables <- c("useful", "funny", "cool", "word_count", "review_count.x", "average_stars", "sum_compliments", "stars.y", "review_count.y", "checkin_count")
+# Train a distributed random forest model
+model_RF <- h2o.randomForest(x = predictor_variables, y = response_variable, training_frame = h2o_data, validation_frame = h2o_data2, ntrees = 500)
 
 #STILL TOO LARGE- subset of training data??
 model_RF <- randomForest(stars.x ~ ., data = review_train_subset)
