@@ -9,7 +9,7 @@ setwd("/Users/waiyan_1020/Desktop/EC349 Project")
 library(jsonlite)
 
 #Load Different Data
-business_data <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
+business_data <- stream_in(file("/Users/bag/Desktop/EC349  Supplementary Material/yelp_academic_dataset_business.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 checkin_data  <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_academic_dataset_checkin.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 tip_data  <- stream_in(file("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_academic_dataset_tip.json")) #note that stream_in reads the json lines (as the files are json lines, not json)
 
@@ -52,8 +52,8 @@ review_data_small$positive_word_count <- sapply(review_data_small$text, count_po
 review_data_small$negative_word_count <- sapply(review_data_small$text, count_negative_words, negative_words = negative_words$V1)
 
 # Add a column indicating sentiment based on the count
-data$Sentiment_Label <- ifelse(data$Positive_Word_Count > data$Negative_Word_Count, "positive",
-                               ifelse(data$Positive_Word_Count < data$Negative_Word_Count, "negative", "neutral"))
+review_data_small$sentiment<- ifelse(review_data_small$positive_word_count > review_data_small$negative_word_count, "positive",
+                               ifelse(review_data_small$positive_word_count < review_data_small$negative_word_count, "negative", "neutral"))
 
 #Select average stars in user data as variable
 library(tidyverse)
@@ -70,6 +70,10 @@ business_data2 <- business_data %>%
 #Merge business and user data
 user_business_data <- left_join(user_review_data, business_data2, by = "business_id")
 
+#Remove unused variables 
+user_business_data <- user_business_data %>%
+  select(stars.x, useful, funny, cool, positive_word_count, negative_word_count, sentiment, average_stars, stars.y)
+
 #Change variables from int to numeric; stars to factor
 str(user_business_data)
 user_business_data$useful <- as.numeric(user_business_data$useful)
@@ -78,14 +82,12 @@ user_business_data$cool<- as.numeric(user_business_data$cool)
 user_business_data$stars.x <- as.factor(user_business_data$stars.x)
 user_business_data$positive_word_count <- as.numeric(user_business_data$positive_word_count)
 user_business_data$negative_word_count <- as.numeric(user_business_data$negative_word_count)
+user_business_data$sentiment <- as.factor(user_business_data$sentiment)
 
-#Remove unused variables 
-user_business_data <- user_business_data %>%
-  select(stars.x, useful, funny, cool, positive_word_count, negative_word_count, average_stars, stars.y)
 
-#Check and handle missing values
+#Remove missing values
 sum(is.na(user_business_data))
-user_business_data$average_stars<- ifelse(is.na(user_business_data$average_stars), mean(user_business_data$average_stars, na.rm = TRUE), user_business_data$average_stars)
+user_business_data <- na.omit(user_business_data)
 
 #Set seed for reproducibility
 set.seed(1) 
@@ -104,8 +106,10 @@ reviewy_train <- as.numeric(reviewy_train)
 library(nnet)
 
 # Train the multinomial logistic model
-multinom_model <- multinom(stars.x ~., data = review_train)
+multinom_model <- multinom(stars.x ~ useful + cool + funny + positive_word_count + negative_word_count + average_stars + stars.y, data = review_train)
 summary (multinom_model)
+multinom_coef_df <- as.data.frame(coef(summary(multinom_model)))
+write.csv(multinom_coef_df, file = "regression_coefficients.csv", row.names = FALSE)
 
 # Make predictions on the test set
 multinom_prediction <- predict(multinom_model, newdata = review_test)
@@ -127,8 +131,10 @@ ridge.mod <- glmnet(as.matrix(userx_business_data), as.matrix(usery_business_dat
 cv.out <- cv.glmnet(as.matrix(reviewx_train), as.matrix(reviewy_train), alpha = 0, nfolds = 5)
 plot(cv.out)
 lambda_ridge_cv <- cv.out$lambda.min
+
 #Re-Estimate Ridge with lambda chosen by Cross validation
 ridge.mod<-glmnet(reviewx_train, reviewy_train, alpha = 0, lambda = lambda_ridge_cv, thresh = 1e-12)
+
 #Fit on Test Data
 ridge.pred <- predict(ridge.mod, s = lambda_ridge_cv, newx = as.matrix(reviewx_test))
 str(reviewy_test)
@@ -141,10 +147,11 @@ cat(ridge_MSE, file = "ridge_MSE.txt")
 cv.out <- cv.glmnet(as.matrix(reviewx_train), as.matrix(reviewy_train), alpha = 1, nfolds = 5)
 plot(cv.out)
 lambda_LASSO_cv <- cv.out$lambda.min #cross-validation is the lambda minimising empirical MSE in training data
+
 #Re-Estimate Ridge with lambda chosen by Cross validation
 LASSO.mod<-glmnet(reviewx_train, reviewy_train, alpha = 1, lambda = lambda_LASSO_cv, thresh = 1e-12)
-coef(LASSO.mod) 
-#no coefficients are set to 0
+coef(LASSO.mod)#no coefficients are set to 0
+
 #Fit on Test Data
 LASSO.pred <- predict(LASSO.mod, s = lambda_LASSO_cv, newx = as.matrix(reviewx_test))
 str(reviewy_test)
@@ -152,5 +159,35 @@ LASSO_MSE<- mean((LASSO.pred - reviewy_test) ^ 2)
 print(LASSO_MSE)
 cat(LASSO_MSE, file = "LASSO_MSE.txt")
 
+#Decision Tree
+library(tree)
+library(rpart)
+library(rpart.plot)
+# Fit decision tree model
+tree <- rpart(stars.x ~., data = review_train, method = "class")
+#Plot tree
+rpart.plot(tree)
 
+#Bagging
+library(ipred) 
+#Fit the bagged model**takes forever too
+bag <- bagging(stars.x~., data=review_train, nbagg = 50, replace=FALSE, coob = TRUE, control = rpart.control(minsplit = 2, cp = 0.1)
+)
+bag
+#0.45
 
+#Random forests- 100 trees
+library(randomForest)
+rf_model <- randomForest(stars.x ~.,data = review_train, ntree = 100, mtry = sqrt(ncol(review_train) - 1), nodesize = 5) 
+# Print the model summary
+print(rf_model)
+#Fit the model
+rf_pred<-predict(rf_model, newdata = review_test)
+summary (rf_pred)
+#Evaluate the accuracy/error rate
+library(caret)
+rf_conf_matrix <- confusionMatrix(rf_pred, review_test$stars.x)
+rf_accuracy <- rf_conf_matrix$overall["Accuracy"]
+print(rf_conf_matrix)
+print(paste("Accuracy:", round(rf_accuracy, 4)))#o.5963
+write.table(rf_conf_matrix$table, "confusion_matrix.csv", sep = ",", col.names = NA, qmethod = "double")
