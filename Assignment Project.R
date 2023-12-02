@@ -23,6 +23,7 @@ library(ggplot2)
 ggplot(review_data_small, aes(x=stars, y=useful)) + geom_bar(position='dodge', stat='summary', fun='mean')
 ggplot(review_data_small, aes(x=stars, y=cool)) + geom_bar(position='dodge', stat='summary', fun='mean')
 ggplot(review_data_small, aes(x=stars, y=funny)) + geom_bar(position='dodge', stat='summary', fun='mean')
+---
 library(dplyr)
 library(stringr)
 review_data_small <- review_data_small %>% 
@@ -34,6 +35,37 @@ user_data_small$sum_compliments <- rowSums(user_data_small[, 12:22])
 
 #Plot association between review count, sum of compliments and average stars
 ggplot(user_data_small, aes(x=review_count, y=average_stars)) + geom_point() + geom_smooth(method="lm")
+
+# Sentiment Analysis
+# Load word list
+positive_words <- read.table("positive-words.txt", header = TRUE, stringsAsFactors = FALSE)
+negative words <- read.table("negative-words.txt", header = TRUE, stringsAsFactors = FALSE)
+
+# Text preprocessing
+review_data_small$text <- tolower(review_data_small$text)
+review_data_small$text <- gsub("[[:punct:]]", "", review_data_small$text)
+review_data_small$text <- gsub("[[:digit:]]", "", review_data_small$text)
+review_data_small$text <- removeWords(review_data_small$text, stopwords("english"))
+
+# Function to count positive or negative words in a text
+count_positive_words <- function(text, positive_words) {
+  words <- unlist(strsplit(text, " "))
+  count <- sum(words %in% positive_words)
+  return(count)
+}
+count_negative_words <- function(text, negative_words) {
+  words <- unlist(strsplit(text, " "))
+  count <- sum(words %in% negative_words)
+  return(count)
+}
+
+# Count positive and negative words for each row in the dataset**takes forever
+review_data_small$positive_word_count <- sapply(review_data_small$text, count_positive_words, positive_words = positive_words$V1)
+review_data_small$negative_word_count <- sapply(review_data_small$text, count_negative_words, negative_words = negative_words$V1)
+
+# Add a column indicating sentiment based on the count
+data$Sentiment_Label <- ifelse(data$Positive_Word_Count > data$Negative_Word_Count, "positive",
+                               ifelse(data$Positive_Word_Count < data$Negative_Word_Count, "negative", "neutral"))
 
 #Merge review and user data by user id
 library(tidyverse)
@@ -57,7 +89,6 @@ business_checkin_merged2 <- business_checkin_merged %>%
 #Merge business and user data
 user_business_merged <- left_join(user_review_merged, business_checkin_merged2, by = "business_id")
 user_business_merged2 = subset(user_business_merged, select = -c(1,2,3,8,9))
-
 
 #Change variables from int to numeric; stars to factor
 str(user_business_merged2)
@@ -93,9 +124,9 @@ reviewy_train <- as.numeric(reviewy_train)
 userx_business_merged2 <- user_business_merged2 [,-1]
 usery_business_merged2 <- user_business_merged2 [,1]
 
-#Multinomial logistic regression
+#Preliminary Multinomial logistic regression
 library(nnet)
-review_multinom_model <- multinom(stars.x ~ useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count, data = review_train)
+review_multinom_model <- multinom(stars.x ~ useful + funny + cool + average_stars + stars.y, data = review_train)
 summary (review_multinom_model)
 multinom_prediction <- predict(review_multinom_model, newdata = review_test)
 summary (multinom_prediction)
@@ -117,7 +148,7 @@ ridge.pred <- predict(ridge.mod, s = lambda_ridge_cv, newx = as.matrix(reviewx_t
 str(reviewy_test)
 reviewy_test <- as.numeric(reviewy_test)
 ridge_MSE<- mean((ridge.pred - reviewy_test) ^ 2) 
-print(ridge_MSE)#1.481496
+print(ridge_MSE) #1.481496
 
 #LASSO with validation
 cv.out <- cv.glmnet(as.matrix(reviewx_train), as.matrix(reviewy_train), alpha = 1, nfolds = 5)
@@ -143,6 +174,9 @@ library(rpart)
 library(rpart.plot)
 table(review_train$stars.x)
 table(review_test$stars.x)
-reviewtree <- tree(stars.x ~., data = review_train, method = "class")
-rpart.plot(reviewtree)
+reviewtree <- tree(stars.x ~useful + funny + cool + word_count + review_count.x + average_stars + sum_compliments + stars.y + review_count.y + checkin_count, data = review_train)
+plot(reviewtree)
+text(reviewtree, pretty = 1)
+
+
 
