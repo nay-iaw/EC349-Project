@@ -568,6 +568,8 @@ of prediction model especially decision trees <span class="citation">(Japkowicz 
 al. 2016)</span>. In this case where the ratings of 4 and 5 are
 exceptionally high compared to other ratings (as shown below), the use
 of random forest can be rationalised.</p>
+<pre class="r"><code>actual_frequency &lt;- read.csv(&quot;actual_frequency_table.csv&quot;)
+kable(actual_frequency, caption = &quot;Actual frequency&quot;)</code></pre>
 <table>
 <caption>Actual frequency</caption>
 <thead>
@@ -627,6 +629,8 @@ predictions as well as accuracy are computed to evaluate the performance
 of the model. The model managed to produce 59.66% of correct prediction.
 The confusion matrix presented below summarises the performance of the
 random forest model:</p>
+<pre class="r"><code>confusion_matrix &lt;- read.csv(&quot;confusion_matrix.csv&quot;, header = FALSE, col.names = c( &quot;Prediction&quot;, &quot;1 star&quot;, &quot;2 stars&quot;, &quot;3 stars&quot;, &quot;4 stars&quot;, &quot;5 stars&quot;))
+kable(confusion_matrix, caption = &quot;Random Forest Confusion Matrix&quot;)</code></pre>
 <table>
 <caption>Random Forest Confusion Matrix</caption>
 <thead>
@@ -714,6 +718,8 @@ ability to show the interaction between the outcome variable and
 predictors. Most predictors appeared to be able to identify underlying
 patterns within the review data, with a certain level of ambiguity in
 distinguishing between 4 and 5-star ratings.</p>
+<pre class="r"><code>multinom_coef_df &lt;- read.csv(&quot;regression_coefficients.csv&quot;)
+kable(multinom_coef_df, caption = &quot;Logistic Regression Coefficients&quot;)</code></pre>
 <table>
 <caption>Logistic Regression Coefficients</caption>
 <colgroup>
@@ -793,6 +799,8 @@ distinguishing between 4 and 5-star ratings.</p>
 </tr>
 </tbody>
 </table>
+<pre class="r"><code>log_confusion_matrix &lt;- read.csv(&quot;log_confusion_matrix.csv&quot;, header = FALSE, col.names = c( &quot;Prediction&quot;, &quot;1 star&quot;, &quot;2 stars&quot;, &quot;3 stars&quot;, &quot;4 stars&quot;, &quot;5 stars&quot;))
+kable(log_confusion_matrix, caption = &quot;Logistic Regression Confusion Matrix&quot;)</code></pre>
 <table>
 <caption>Logistic Regression Confusion Matrix</caption>
 <thead>

@@ -3,9 +3,9 @@ title: "EC349 Project"
 author: "Wai Yan"
 date: "2023-12-03"
 output:
-  html_document: default
-  word_document: default
   pdf_document: default
+  word_document: default
+  html_document: default
 bibliography: references.bib
 ---
 
@@ -49,7 +49,7 @@ In the early 2000s, the significance of online user reviews and their impact on 
 
 ## 2. Related work
 
-Literature in review rating prediction using Yelp datasets was well-documented, with an extensive evaluation of both machine learning and deep learning models [@elkouri2015; @asghar2016; @a.rafay2020a; @liu2020; @liuz2020]. Surprisingly, most researchers found that logistic regression models tend to outperform other supervised learning algorithms such as random forest, support vector machine (SVM) and Naive Bayes Classifier. They yield accuracy ranged between 64-65% with some variations in training times [@elkouri2015; @liu2020; @liuz2020; @asghar2016]. However, there are mixed findings in the comparison between machine learning and deep learning methods[^1].
+Literature in review rating prediction using Yelp datasets was well-documented, with an extensive evaluation of both machine learning and deep learning models [@elkouri2015; @asghar2016; @a.rafay2020; @liu2020; @liuz2020]. Surprisingly, most researchers found that logistic regression models tend to outperform other supervised learning algorithms such as random forest, support vector machine (SVM) and Naive Bayes Classifier. They yield accuracy ranged between 64-65% with some variations in training times [@elkouri2015; @liu2020; @liuz2020; @asghar2016]. However, there are mixed findings in the comparison between machine learning and deep learning methods[^1].
 
 [^1]: Mostly Long Short Term Memory (LSTM) and Bidirectional Encoder Representations from Transformers (BERT)
 
@@ -104,7 +104,7 @@ where stars.x is the user rating and stars.y is the business rating.
 
 Random forest provides a comprehensive prediction model to prevent overfitting due to sensitivity towards outliers and noises [@breiman2001]. Imbalanced class, characterised by huge differences in class probabilities, can impact the performance of prediction model especially decision trees [@japkowicz2002; @chawla2003c4; @muchlinski2016a]. In this case where the ratings of 4 and 5 are exceptionally high compared to other ratings (as shown below), the use of random forest can be rationalised.
 
-```{r Actual outcome, echo=FALSE}
+```{r Actual outcome, echo=TRUE}
 actual_frequency <- read.csv("actual_frequency_table.csv")
 kable(actual_frequency, caption = "Actual frequency")
 ```
@@ -133,8 +133,11 @@ The model is specified below:
 
 The confusion matrix which shows the the number of correct and false predictions as well as accuracy are computed to evaluate the performance of the model. The model managed to produce 59.66% of correct prediction. The confusion matrix presented below summarises the performance of the random forest model:
 
-```{r Random Forest Confusion Matrix, echo=FALSE}
-confusion_matrix <- read.csv("confusion_matrix.csv", header = FALSE, col.names = c( "Prediction", "1 star", "2 stars", "3 stars", "4 stars", "5 stars"))
+```{r Random Forest Confusion Matrix, echo=TRUE}
+confusion_matrix <- read.csv("confusion_matrix.csv", 
+                             header = FALSE, 
+                             col.names = c( "Prediction", "1 star", "2 stars", "3 stars",
+                                            "4 stars", "5 stars"))
 kable(confusion_matrix, caption = "Random Forest Confusion Matrix")
 ```
 
@@ -148,13 +151,17 @@ Due to the limited interpretability of the random forest, the analysis was repli
 
 In the logistic regression analysis, the advantage lies in its ability to show the interaction between the outcome variable and predictors. Most predictors appeared to be able to identify underlying patterns within the review data, with a certain level of ambiguity in distinguishing between 4 and 5-star ratings.
 
-```{r Logistic Regression Coefficients, echo=FALSE}
+```{r Logistic Regression Coefficients, echo=TRUE}
 multinom_coef_df <- read.csv("regression_coefficients.csv")
 kable(multinom_coef_df, caption = "Logistic Regression Coefficients")
 ```
 
-```{r Logistic Regression Confusion Matrix, echo=FALSE}
-log_confusion_matrix <- read.csv("log_confusion_matrix.csv", header = FALSE, col.names = c( "Prediction", "1 star", "2 stars", "3 stars", "4 stars", "5 stars"))
+*(Sorry about the overlapping text. The table can be found in [Regression Coefficient](https://github.com/nay-iaw/EC349-Project/blob/master/regression_coefficients.csv))*
+
+```{r Logistic Regression Confusion Matrix, echo=TRUE}
+log_confusion_matrix <- read.csv("log_confusion_matrix.csv", header = FALSE, 
+                                 col.names = c( "Prediction", "1 star", "2 stars", 
+                                                "3 stars", "4 stars", "5 stars"))
 kable(log_confusion_matrix, caption = "Logistic Regression Confusion Matrix")
 ```
 
@@ -165,6 +172,8 @@ Despite being slightly better in predicting polarity with ratings of 1 and 5, it
 The data project faces challenges with prolonged training times and high memory requirements for both random trees and logistic regression, highlighting the need for simplified models that balance processing efficiency with performance. Additionally, it highlighted the need for a standardised approach to address imbalanced data as some existing suggestions like re-sampling and improved weights may lead to missing information and increased computational difficulties [@japkowicz2002; @shahhosseini2020].
 
 In conclusion, the analysis indicates that random forest provided a higher accuracy in classifying imbalanced classes compared to logistic regression, contrary to previous literature. Despite this advantage, the random forest model does exhibit some misclassification errors, which may be attributed to overfitting. However, its distinct benefits, including enhanced generalisation and decorrelation, underscore its suitability for this specific application. Considering overall accuracy and potential overfitting, random choice remains the most effective model to the best of my knowledge.
+
+[GitHub](https://github.com/nay-iaw/EC349-Project)
 
 *(Word count: 1124)*
 
@@ -177,4 +186,156 @@ In conclusion, the analysis indicates that random forest provided a higher accur
 
 <center>![](Rplot%20tree.png)</center>
 
-Desion tree was also plotted but ratings of 2 and 3 were completed neglected in this model
+Decision tree was also plotted but ratings of 2 and 3 were completed neglected in this model
+
+[R script]{.underline}
+
+```{r eval=FALSE, include=TRUE}
+#Clear
+cat("\014")  
+rm(list=ls())
+
+#Set Directory as appropriate
+setwd("/Users/waiyan_1020/Desktop/EC349 Project")
+
+#Pre-Processing Yelp Academic Data for the Assignment
+library(jsonlite)
+
+#Load Different Data
+business_data <- stream_in(file("/Users/waiyan_1020/Desktop
+                                /EC349  Supplementary Material/yelp_academic_dataset_business.json")) 
+checkin_data  <- stream_in(file("/Users/waiyan_1020/Desktop
+                                /EC349  Supplementary Material/yelp_academic_dataset_checkin.json")) 
+tip_data  <- stream_in(file("/Users/waiyan_1020/Desktop
+                            /EC349  Supplementary Material/yelp_academic_dataset_tip.json")) 
+
+#Load smaller user and review data
+load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_review_small.Rda")
+load("/Users/waiyan_1020/Desktop/EC349  Supplementary Material/yelp_user_small.Rda")
+
+# Sentiment Analysis
+# Load word list
+positive_words <- read.table("positive-words.txt", header = FALSE, stringsAsFactors = FALSE)
+negative_words <- read.table("negative-words.txt", header = FALSE, stringsAsFactors = FALSE)
+
+# Text pre-processing
+library (tm)
+review_data_small$text <- tolower(review_data_small$text)
+review_data_small$text <- gsub("[[:punct:]]", "", review_data_small$text)
+review_data_small$text <- gsub("[[:digit:]]", "", review_data_small$text)
+review_data_small$text <- removeWords(review_data_small$text, stopwords("english"))
+
+# Function to count positive or negative words in a text
+count_positive_words <- function(text, positive_words) {
+  words <- unlist(strsplit(text, " "))
+  count <- sum(words %in% positive_words)
+  return(count)
+}
+count_negative_words <- function(text, negative_words) {
+  words <- unlist(strsplit(text, " "))
+  count <- sum(words %in% negative_words)
+  return(count)
+}
+
+# Add columns for positive and negative word count in review data **takes forever
+review_data_small$positive_word_count <- sapply(review_data_small$text, 
+                                                count_positive_words, positive_words = 
+                                                  positive_words$V1)
+review_data_small$negative_word_count <- sapply(review_data_small$text, 
+                                                count_negative_words, negative_words = 
+                                                  negative_words$V1)
+
+# Add a column indicating sentiment based on the count
+review_data_small$sentiment<- ifelse(review_data_small$positive_word_count
+                                     >review_data_small$negative_word_count, "positive",
+                              ifelse(review_data_small$positive_word_count
+                                     <review_data_small$negative_word_count, "negative", "neutral"))
+
+#Select average stars in user data as variable
+library(tidyverse)
+user_data_small2 <- user_data_small %>%
+  select(user_id, average_stars)
+
+#Merge review and user data by user id
+user_review_data <- left_join(review_data_small, user_data_small2, by = "user_id")
+
+#Select stars in business data as variables
+business_data2 <- business_data %>%
+  select(business_id, stars)
+
+#Merge business and user data
+user_business_data <- left_join(user_review_data, business_data2, by = "business_id")
+
+#Remove unused variables 
+user_business_data <- user_business_data %>%
+  select(stars.x, useful, funny, cool, positive_word_count, 
+         negative_word_count, sentiment, average_stars, stars.y)
+
+#Change variables from int to numeric; stars to factor
+str(user_business_data)
+user_business_data$useful <- as.numeric(user_business_data$useful)
+user_business_data$funny <- as.numeric(user_business_data$funny)
+user_business_data$cool<- as.numeric(user_business_data$cool)
+user_business_data$stars.x <- as.factor(user_business_data$stars.x)
+user_business_data$positive_word_count <- as.numeric(user_business_data$positive_word_count)
+user_business_data$negative_word_count <- as.numeric(user_business_data$negative_word_count)
+user_business_data$sentiment <- as.factor(user_business_data$sentiment)
+
+#Remove missing values
+sum(is.na(user_business_data))
+user_business_data <- na.omit(user_business_data)
+
+#Set seed for reproducibility
+set.seed(1) 
+
+#Split the data into test and training
+test_obs <- sample(1:nrow(user_business_data), 10000)
+review_test <- user_business_data[test_obs, ]
+review_train <- user_business_data[-test_obs, ]
+
+#Generate frequency table for actual user review
+test_actual <- table (review_test$stars.x)
+actual_df <- as.data.frame(test_actual)
+colnames(actual_df) <- c("Actual_Outcome", "Actual_Frequency")
+write.csv(actual_df, "actual_frequency_table.csv", row.names = FALSE)
+
+#Random forests- 100 trees**takes even longer
+library(randomForest)
+rf_model <- randomForest(stars.x ~., data = review_train, ntree=100, 
+                         mtry = sqrt(ncol(review_train)-1), nodesize = 10) 
+
+# Print the model summary
+print(rf_model)
+
+#Fit the model
+rf_pred<-predict(rf_model, newdata = review_test)
+summary (rf_pred)
+
+#Evaluate the accuracy/error rate
+library(caret)
+rf_conf_matrix <- confusionMatrix(rf_pred, review_test$stars.x)
+rf_accuracy <- rf_conf_matrix$overall["Accuracy"]
+print(rf_conf_matrix)
+print(paste("Accuracy:", round(rf_accuracy, 4)))
+write.table(rf_conf_matrix$table, "confusion_matrix.csv", sep = ",", col.names = NA, 
+            qmethod = "double")
+
+#Compare with logistic regression again (all predictors)
+library(nnet)
+multinom_model <- multinom(stars.x ~., data = review_train)
+summary (multinom_model)
+multinom_coef_df <- as.data.frame(coef(summary(multinom_model)))
+write.csv(multinom_coef_df, file = "regression_coefficients.csv", row.names = FALSE)
+
+# Make predictions on the test set
+multinom_prediction <- predict(multinom_model, newdata = review_test)
+
+#Evaluate the accuracy/error rate
+library(caret)
+log_conf_matrix <- confusionMatrix(multinom_prediction, review_test$stars.x)
+log_accuracy <- log_conf_matrix$overall["Accuracy"]
+print(log_conf_matrix)
+print(paste("Accuracy:", round(log_accuracy, 4)))
+write.table(rf_conf_matrix$table, "log_confusion_matrix.csv", sep = ",", col.names = NA, 
+            qmethod = "double")
+```
