@@ -3,9 +3,9 @@ title: "EC349 Project"
 author: "Wai Yan"
 date: "2023-12-03"
 output:
-  pdf_document: default
-  word_document: default
   html_document: default
+  word_document: default
+  pdf_document: default
 bibliography: references.bib
 ---
 
@@ -53,7 +53,7 @@ Literature in review rating prediction using Yelp datasets was well-documented, 
 
 [^1]: Mostly Long Short Term Memory (LSTM) and Bidirectional Encoder Representations from Transformers (BERT)
 
-Additionally, similar projects employed F1 score as an evaluation metric, accounting for Type I and Type II errors, along with confusion matrix [@liu2020; @liuz2020; @asghar2016]. Also, in terms of text pre-processing, the td-idf transformer or vectoriser was used to generate weight of each word, as the length of the text may affect the count for "buzzwords" [@elkouri2015; @asghar2016; @a.rafay2020; @liu2020; @liuz2020]. Regrettably, these are not implemented in this data project, as it would be computationally challenging and beyond the learning scope.
+Additionally, similar projects employed F1 score as an evaluation metric, accounting for Type I and Type II errors, along with confusion matrix [@liu2020; @liuz2020; @asghar2016]. Also, in terms of text pre-processing, the td-idf transformer or vectorizer was used to generate weight of each word, as the length of the text may affect the count for "buzzwords" [@elkouri2015; @asghar2016; @a.rafay2020; @liu2020; @liuz2020]. Regrettably, these are not implemented in this data project, as it would be computationally challenging and beyond the learning scope.
 
 ## 3. Data setup
 
