@@ -3,9 +3,9 @@ title: "EC349 Project"
 author: "Wai Yan"
 date: "2023-12-03"
 output:
-  html_document: default
-  word_document: default
   pdf_document: default
+  word_document: default
+  html_document: default
 bibliography: references.bib
 ---
 
@@ -53,7 +53,7 @@ Literature in review rating prediction using Yelp datasets was well-documented, 
 
 [^1]: Mostly Long Short Term Memory (LSTM) and Bidirectional Encoder Representations from Transformers (BERT)
 
-Additionally, similar projects employed F1 score as an evaluation metric, accounting for Type I and Type II errors, along with confusion matrix [@liu2020; @liuz2020; @asghar2016]. Also, in terms of text pre-processing, the td-idf transformer or vectorizer was used to generate weight of each word, as the length of the text may affect the count for "buzzwords" [@elkouri2015; @asghar2016; @a.rafay2020; @liu2020; @liuz2020]. Regrettably, these are not implemented in this data project, as it would be computationally challenging and beyond the learning scope.
+Additionally, in terms of text pre-processing, the td-idf transformer or vectorizer was used to generate weight of each word, as the length of the text may affect the count for "buzzwords" [@elkouri2015; @asghar2016; @a.rafay2020; @liu2020; @liuz2020]. Also, more sophisticated natural language processing models were employed to extract the true meaning of textual data [@leung2006integrating; @pang2008opinion; @qu-etal-2010-bag].
 
 ## 3. Data setup
 
@@ -90,7 +90,7 @@ Initially, variables such as word count of text, check-in count, sum of complime
 
 ### 3.3 Missing values
 
-As the user, review and business data are merged, the missing values are omitted and the types of some variables are changed to better conduct analysis and interpret results. The training data now consists of 269878 observations (originally 1388056). The final list of variables are as below:\
+As the user, review and business data are merged, the missing values are omitted and the types of some variables are changed to better conduct analysis and interpret results. The training data now consists of 269878 observations. The final list of variables is as below:\
 
 <center>![](Screenshot%202023-12-03%20at%203.41.27%20PM.png)</center>
 
@@ -109,7 +109,7 @@ actual_frequency <- read.csv("actual_frequency_table.csv")
 kable(actual_frequency, caption = "Actual frequency")
 ```
 
-The internal feature selection and decorrelation of random forest are also applicable in this case where predictors are found to be higher correlated, indicating a high possibility of multicollinearity[^4]. This is because random forest strategically limits predictor consideration at each split, mitigating the impact of a single dominant predictor [@james2021].
+The internal feature selection and decorrelation of random forest are also applicable in this case where predictors are found to be higher correlated[^4]. This is because random forest strategically limits predictor consideration at each split, mitigating the impact of a single dominant predictor [@james2021].
 
 [^4]: Variance Inflation Factor (VIF) is used to detect multicollinearity between predictors, values as high as 27 were obtained.
 
@@ -131,7 +131,7 @@ The model is specified below:
 
 ### 4.3 Results and model evaluation
 
-The confusion matrix which shows the the number of correct and false predictions as well as accuracy are computed to evaluate the performance of the model. The model managed to produce 59.66% of correct prediction. The confusion matrix presented below summarises the performance of the random forest model:
+The confusion matrix and overall accuracy are computed to evaluate the performance of the model. The model managed to produce 59.66% of correct predictions. The confusion matrix presented below summarises the performance of the random forest model:
 
 ```{r Random Forest Confusion Matrix, echo=TRUE}
 confusion_matrix <- read.csv("confusion_matrix.csv", 
@@ -141,22 +141,22 @@ confusion_matrix <- read.csv("confusion_matrix.csv",
 kable(confusion_matrix, caption = "Random Forest Confusion Matrix")
 ```
 
-Despite achieving a marginally higher accuracy, the model's limitations in predicting ratings between 2 and 3 persisted, with results skewed towards ratings 1 and 5. Additionally, the constraint on the number of trees may have influenced the model's predictive performance, especially considering the scale of the dataset.
+Despite achieving a marginally higher accuracy, the model's limitations in predicting ratings between 2 and 3 persisted, with results skewed towards ratings 1 and 5. The results may imply that imbalanced class still deteriorate the performance of the model to certain extent. Additionally, the constraint on the number of trees may have influenced the model's predictive performance, especially considering the scale of the dataset.
 
-The out-of-bag estimation error, standing at 40.54%, raises concerns about the generalisation performance of the random forest model. This substantial error suggests a potential risk of overfitting, where the model could be influenced by noise.
+The out-of-bag estimation error, standing at 40.54%, raises concerns about the generalisation performance of the random forest model. This substantial error suggests a potential risk of overfitting, as opposed to the theoretical explanation where random forest is better in handling outliers. It is also possible that the feature selection does not completely reflect the choice of star ratings.
 
 ### 4.4 Comparison with Logistic Regression
 
-Due to the limited interpretability of the random forest, the analysis was replicated using multinomial logistic regression. In this comparison, logistic regression exhibited a slightly diminished performance compared to the random forest, achieving an overall accuracy of 58.65%. These findings align with recent observations in the medical field, where no significant differences were noted between the performance of logistic regression models and random trees[@christodoulou2019].
+Due to the limited interpretability of the random forest, the analysis was replicated using multinomial logistic regression. In this comparison, logistic regression exhibited a slightly diminished performance compared to the random forest, achieving an overall accuracy of 58.65%. These findings align with recent application in the medical field, where no significant differences were noted between the two models[@christodoulou2019].
 
-In the logistic regression analysis, the advantage lies in its ability to show the interaction between the outcome variable and predictors. Most predictors appeared to be able to identify underlying patterns within the review data, with a certain level of ambiguity in distinguishing between 4 and 5-star ratings.
+In the logistic regression analysis, the advantage lies in its ability to show the interaction between the outcome variable and predictors. Most predictors appeared to be able to identify underlying patterns within the review data, with some degree of ambiguity in distinguishing between 4 and 5-star ratings.
 
 ```{r Logistic Regression Coefficients, echo=TRUE}
 multinom_coef_df <- read.csv("regression_coefficients.csv")
 kable(multinom_coef_df, caption = "Logistic Regression Coefficients")
 ```
 
-*(Sorry about the overlapping text. The table can be found in [Regression Coefficient](https://github.com/nay-iaw/EC349-Project/blob/master/regression_coefficients.csv))*
+*(The table can be found in [Regression Coefficient](https://github.com/nay-iaw/EC349-Project/blob/master/regression_coefficients.csv))*
 
 ```{r Logistic Regression Confusion Matrix, echo=TRUE}
 log_confusion_matrix <- read.csv("log_confusion_matrix.csv", header = FALSE, 
@@ -169,13 +169,13 @@ Despite being slightly better in predicting polarity with ratings of 1 and 5, it
 
 ## 5. Discussion and Conclusion
 
-The data project faces challenges with prolonged training times and high memory requirements for both random trees and logistic regression, highlighting the need for simplified models that balance processing efficiency with performance. Additionally, it highlighted the need for a standardised approach to address imbalanced data as some existing suggestions like re-sampling and improved weights may lead to missing information and increased computational difficulties [@japkowicz2002; @shahhosseini2020].
+The data project faces challenges with prolonged training times and high memory requirements for both random trees and logistic regression, highlighting the need for simplified models that balance processing efficiency with performance. Additionally, it highlighted the need for a standardised approach to address imbalanced data as some existing suggestions like re-sampling and improved weights may lead to increased computational difficulties [@japkowicz2002; @shahhosseini2020].
 
-In conclusion, the analysis indicates that random forest provided a higher accuracy in classifying imbalanced classes compared to logistic regression, contrary to previous literature. Despite this advantage, the random forest model does exhibit some misclassification errors, which may be attributed to overfitting. However, its distinct benefits, including enhanced generalisation and decorrelation, underscore its suitability for this specific application. Considering overall accuracy and potential overfitting, random choice remains the most effective model to the best of my knowledge.
+In conclusion, the analysis indicates that random forest provided a higher accuracy in classifying imbalanced classes compared to logistic regression, contrary to most of the previous literature. Despite this advantage, the random forest model does exhibit some misclassification errors, which may be attributed to overfitting and imbalanced class. However, its distinct benefits, including enhanced generalisation and decorrelation, underscore its suitability for this specific application. Considering overall accuracy, potential overfitting and class imbalance, random choice remains the most effective model to the best of my knowledge.
 
 [GitHub](https://github.com/nay-iaw/EC349-Project)
 
-*(Word count: 1124)*
+*(Word count: 1174)*
 
 ## References
 
